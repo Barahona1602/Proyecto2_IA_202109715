@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ML con TytusJS</title>
+    <link rel="stylesheet" href="styles.css" />
+
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.js"
+    ></script>
+  </head>
+  <body>
+    <h1>Práctica de Machine Learning con TytusJS</h1>
+
+    <!-- Selección de algoritmo de ML -->
+    <label for="algorithmSelect"
+      >Selecciona el algoritmo de Machine Learning:</label
+    >
+    <select id="algorithmSelect" onchange="updateVisibility()">
+      <option value="linear_regression">Regresión Lineal</option>
+      <option value="polynomial_regression">Regresión Polinómica</option>
+      <option value="decision_tree">Árbol de Decisión</option>
+      <option value="naive_bayes">Naive Bayes</option>
+      <option value="neuronal_network">Red Neuronal</option>
+      <option value="kmeans">KMeans</option>
+      <option value="knn">K-Vecinos Más Cercanos</option>
+    </select>
+    <br /><br />
+
+    <!-- Selección de archivo CSV -->
+    <label for="datasetInput">Selecciona un archivo CSV:</label>
+    <input type="file" id="datasetInput" accept=".csv" />
+    <br /><br />
+
+    <!-- Carga de segundo archivo CSV para el árbol de decisión -->
+    <div id="secondFileUpload" style="display: none">
+      <label for="datasetInput2">Selecciona un segundo archivo CSV:</label>
+      <input type="file" id="datasetInput2" accept=".csv" />
+      <br /><br />
+    </div>
+
+    <!-- Carga de segundo archivo CSV para el árbol de decisión -->
+    <div id="thirdFileUpload" style="display: none">
+      <label for="datasetInput3">Selecciona un tercero archivo CSV:</label>
+      <input type="file" id="datasetInput3" accept=".csv" />
+      <br /><br />
+    </div>
+
+    <!-- Selección de columnas para ejes X e Y -->
+    <div id="columnSelection" style="display: block">
+      <label for="xAxisColumn">Selecciona la columna para el eje X:</label>
+      <select id="xAxisColumn">
+        <!-- Las opciones se llenarán dinámicamente -->
+      </select>
+      <br /><br />
+
+      <label for="yAxisColumn">Selecciona la columna para el eje Y:</label>
+      <select id="yAxisColumn">
+        <!-- Las opciones se llenarán dinámicamente -->
+      </select>
+      <br /><br />
+    </div>
+
+    <!-- Grado de la Regresión Polinómica -->
+    <div id="polynomialDegreeContainer" style="display: none">
+      <label for="polynomialDegree">Grado de la Regresión Polinómica:</label>
+      <input type="number" id="polynomialDegree" min="1" max="10" value="2" />
+      <br /><br />
+    </div>
+
+    <!-- Parametrización -->
+    <div id="trainPercentageContainer" style="display: block">
+      <label for="trainPercentage">Porcentaje de Entrenamiento:</label>
+      <input type="number" id="trainPercentage" min="1" max="100" value="80" />
+      <br /><br />
+    </div>
+    <!-- para naive -->
+    <div id="naiveBayesFormContainer" style="display: none"></div>
+
+    <br /><br />
+
+    <!-- Botones de acción -->
+    <button id="trainButton">Entrenar, Predecir y Graficar</button>
+
+    <!-- Lienzo para la gráfica -->
+    <!-- Contenedor para mostrar la predicción Naive Bayes -->
+    <div
+      id="naiveBayesPredictionContainer"
+      style="
+        display: none;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-top: 20px;
+      "
+    >
+      <h3>Resultado de la Predicción Naive Bayes</h3>
+      <p id="naiveBayesPredictionText"></p>
+    </div>
+
+    <!-- Contenedor para mostrar los resultados de la red neuronal -->
+    <div
+      id="neuralNetworkPredictionContainer"
+      style="
+        display: none;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-top: 20px;
+      "
+    >
+      <h3>Resultados de la Predicción de la Red Neuronal</h3>
+      <p id="neuralNetworkPredictionText"></p>
+    </div>
+
+    <!-- Contenedor para mostrar los pesos -->
+    <div
+      id="neuralNetworkWeightsContainer"
+      style="
+        display: none;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-top: 20px;
+      "
+    >
+      <h3>Pesos de la Primera Capa</h3>
+      <p id="neuralNetworkWeightsText"></p>
+    </div>
+
+    <!-- Contenedor para mostrar los sesgos -->
+    <div
+      id="neuralNetworkBiasesContainer"
+      style="
+        display: none;
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-top: 20px;
+      "
+    >
+      <h3>Sesgos de la Primera Capa</h3>
+      <p id="neuralNetworkBiasesText"></p>
+    </div>
+
+    <div id="chartkmean" style="width: 1000px; height: 1000px;"></div>
+
+    <div id="tree" style="width: 600px; height: 400px"></div>
+    <canvas id="myChart" ></canvas>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script type="text/javascript" src="tytusjs-main/dist/tytus.js"></script>
+    <script src="main.js"></script>
+
+    <script>
+      function updateVisibility() {
+        const selectedModel = document.getElementById("algorithmSelect").value;
+        const columnSelection = document.getElementById("columnSelection");
+        const secondFileUpload = document.getElementById("secondFileUpload");
+        const thirdFileUpload = document.getElementById("thirdFileUpload");
+        const myChart = document.getElementById("myChart");
+        const polynomialDegreeContainer = document.getElementById("polynomialDegreeContainer");
+        const trainPercentageContainer = document.getElementById("trainPercentageContainer");
+        const naiveBayesFormContainer = document.getElementById("naiveBayesFormContainer");
+        const naiveBayesPredictionContainer = document.getElementById("naiveBayesPredictionContainer");
+        const neuralNetworkPredictionContainer = document.getElementById("neuralNetworkPredictionContainer");
+        const neuralNetworkWeightsContainer = document.getElementById("neuralNetworkWeightsContainer");
+        const neuralNetworkBiasesContainer = document.getElementById("neuralNetworkBiasesContainer");
+        const tree = document.getElementById("tree");
+
+
+        if (selectedModel === "decision_tree") {
+          columnSelection.style.display = "none";
+          myChart.style.display = "none";
+          secondFileUpload.style.display = "block";
+          thirdFileUpload.style.display = "none";
+          polynomialDegreeContainer.style.display = "none";
+          trainPercentageContainer.style.display = "none";
+          naiveBayesFormContainer.style.display = "none";
+          naiveBayesPredictionContainer.style.display = "none";
+          neuralNetworkPredictionContainer.style.display = "none";
+          neuralNetworkWeightsContainer.style.display = "none";
+          neuralNetworkBiasesContainer.style.display = "none";
+          tree.style.display = "block";
+        } else if (selectedModel === "polynomial_regression") {
+          columnSelection.style.display = "block";
+          secondFileUpload.style.display = "none";
+          polynomialDegreeContainer.style.display = "block";
+          trainPercentageContainer.style.display = "none";
+          naiveBayesFormContainer.style.display = "none";
+          naiveBayesPredictionContainer.style.display = "none";
+          myChart.style.display = "display";
+          thirdFileUpload.style.display = "none";
+          neuralNetworkPredictionContainer.style.display = "none";
+          neuralNetworkWeightsContainer.style.display = "none";
+          neuralNetworkBiasesContainer.style.display = "none";
+          tree.style.display = "none";
+        } else if (selectedModel === "linear_regression") {
+          columnSelection.style.display = "block";
+          secondFileUpload.style.display = "none";
+          polynomialDegreeContainer.style.display = "none";
+          trainPercentageContainer.style.display = "block";
+          naiveBayesFormContainer.style.display = "none";
+          naiveBayesPredictionContainer.style.display = "none";
+          myChart.style.display = "display";
+          thirdFileUpload.style.display = "none";
+          neuralNetworkPredictionContainer.style.display = "none";
+          neuralNetworkWeightsContainer.style.display = "none";
+          neuralNetworkBiasesContainer.style.display = "none";
+          tree.style.display = "none";
+        } else if (selectedModel === "naive_bayes") {
+          naiveBayesFormContainer.style.display = "block"; // Mostrar el formulario para Naive Bayes
+          columnSelection.style.display = "none";
+          secondFileUpload.style.display = "none";
+          polynomialDegreeContainer.style.display = "none";
+          trainPercentageContainer.style.display = "none";
+          myChart.style.display = "none";
+          thirdFileUpload.style.display = "none";
+          neuralNetworkPredictionContainer.style.display = "none";
+          neuralNetworkWeightsContainer.style.display = "none";
+          neuralNetworkBiasesContainer.style.display = "none";
+          tree.style.display = "none";
+        } else if (selectedModel === "neuronal_network") {
+          columnSelection.style.display = "none";
+          secondFileUpload.style.display = "block";
+          polynomialDegreeContainer.style.display = "none";
+          trainPercentageContainer.style.display = "none";
+          naiveBayesFormContainer.style.display = "none";
+          naiveBayesPredictionContainer.style.display = "none";
+          myChart.style.display = "block";
+          thirdFileUpload.style.display = "block";
+          neuralNetworkPredictionContainer.style.display = "block";
+          neuralNetworkWeightsContainer.style.display = "block";
+          neuralNetworkBiasesContainer.style.display = "block";
+          tree.style.display = "none";
+        }else if (selectedModel === "kmeans") {
+          columnSelection.style.display = "none";
+          secondFileUpload.style.display = "block";
+          polynomialDegreeContainer.style.display = "none";
+          trainPercentageContainer.style.display = "none";
+          naiveBayesFormContainer.style.display = "none";
+          naiveBayesPredictionContainer.style.display = "none";
+          myChart.style.display = "block";
+          thirdFileUpload.style.display = "none";
+          neuralNetworkPredictionContainer.style.display = "none";
+          neuralNetworkWeightsContainer.style.display = "none";
+          neuralNetworkBiasesContainer.style.display = "none";
+          tree.style.display = "block";
+        }else if (selectedModel === "knn") {
+          columnSelection.style.display = "none";
+          secondFileUpload.style.display = "block";
+          polynomialDegreeContainer.style.display = "none";
+          trainPercentageContainer.style.display = "none";
+          naiveBayesFormContainer.style.display = "none";
+          naiveBayesPredictionContainer.style.display = "none";
+          myChart.style.display = "none";
+          thirdFileUpload.style.display = "none";
+          neuralNetworkPredictionContainer.style.display = "none";
+          neuralNetworkWeightsContainer.style.display = "none";
+          neuralNetworkBiasesContainer.style.display = "none";
+          tree.style.display = "block";
+        } else {
+          columnSelection.style.display = "none";
+          secondFileUpload.style.display = "none";
+          polynomialDegreeContainer.style.display = "none";
+          trainPercentageContainer.style.display = "none";
+        }
+      }
+    </script>
+  </body>
+</html>
